@@ -277,15 +277,13 @@ jobs:
           echo "Image: $IMAGE"
 
           if [ "$ENVIRONMENT" = "dev" ]; then
-            DB_CONFIG="${{ secrets.AZURE_DB_CONFIG }}"
-            API_KEYS_JSON="${{ secrets.AZURE_API_KEYS_JSON }}"
-            REDIS_URL="${{ secrets.AZURE_REDIS_URL }}"
-            ORBIEE_SEARCH_BACKEND="${{ secrets.AZURE_ORBIEE_SEARCH_BACKEND }}"
+            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config"
+            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys"
+            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url"
           else
-            DB_CONFIG="${{ secrets.AZURE_DB_CONFIG_DEMO }}"
-            API_KEYS_JSON="${{ secrets.AZURE_API_KEYS_JSON }}"
-            REDIS_URL="${{ secrets.AZURE_DEMO_REDIS_URL }}"
-            ORBIEE_SEARCH_BACKEND="${{ secrets.AZURE_ORBIEE_SEARCH_BACKEND_DEMO }}"
+            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config-demo"
+            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys"
+            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url"
           fi
 
           # ------------------------------------------------------------
@@ -301,7 +299,6 @@ jobs:
                 DB_CONFIG="$DB_CONFIG" \
                 API_KEYS_JSON="$API_KEYS_JSON" \
                 REDIS_URL="$REDIS_URL" \
-                ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND"
 
             az containerapp update \
               --name "$CLOUD_RUN_SERVICE" \
@@ -320,7 +317,7 @@ jobs:
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
                 REDIS_URL=secretref:REDIS_URL \
-                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
+                ORBIEE_SEARCH_BACKEND=internal
           else
             echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
             
@@ -340,14 +337,13 @@ jobs:
                 DB_CONFIG="$DB_CONFIG" \
                 API_KEYS_JSON="$API_KEYS_JSON" \
                 REDIS_URL="$REDIS_URL" \
-                ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
                 REDIS_URL=secretref:REDIS_URL \
-                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
+                ORBIEE_SEARCH_BACKEND=internal
           fi
 
           echo ""
@@ -375,16 +371,11 @@ jobs:
               --min-replicas 1 \
               --max-replicas 1 \
               --set-env-vars \
-                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
                 ORBIEE_DEBUG=false \
-                VERTEX_PROJECT=218142584790 \
-                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
                 REDIS_URL=secretref:REDIS_URL \
-                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
+                ORBIEE_SEARCH_BACKEND=internal \
               --command python \
               --args "-m" "orbiee.workers.session_worker"
           else
@@ -406,7 +397,7 @@ jobs:
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
                 REDIS_URL=secretref:REDIS_URL \
-                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
+                ORBIEE_SEARCH_BACKEND=sinternal \
               --command python \
               --args "-m" "orbiee.workers.session_worker"
           fi
