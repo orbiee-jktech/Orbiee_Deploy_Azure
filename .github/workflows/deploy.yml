@@ -252,6 +252,11 @@ jobs:
           REGION="${{ needs.setup.outputs.region }}"
           ACR_NAME="${{ needs.setup.outputs.artifact_registry_repo }}"
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
+          EMOTION_DETECTION_IMAGE_NAME="${{ needs.setup.outputs.emotion_detection_image_name }}"
+          IMPRESSIONS_IMAGE_NAME="${{ needs.setup.outputs.impressions_image_name }}"
+          PREFERENCES_IMAGE_NAME="${{ needs.setup.outputs.preferences_image_name }}"
+          TYPE_AFFINITY_IMAGE_NAME="${{ needs.setup.outputs.type_affinity_image_name }}"
+          ITEM_POPULARITY_IMAGE_NAME="${{ needs.setup.outputs.item_popularity_image_name }}"
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
 
           RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
