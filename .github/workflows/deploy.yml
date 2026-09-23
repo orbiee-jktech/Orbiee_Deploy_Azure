@@ -40,33 +40,7 @@ jobs:
           if [[ "$REPO" == "orbiee-jktech/Orbiee_Backend_Azure" ]]; then
 
             case "$BRANCH" in
-              rearchitecture|feature/emotion_detection)
-                CLOUD_RUN_SERVICE="orbiee-backend-dev"
-                IMAGE_NAME="orbiee-backend-dev"
-                EMOTION_DETECTION_IMAGE_NAME="orbiee-emotion-detection-dev"
-                IMPRESSIONS_IMAGE_NAME="orbiee-impressions-analytics-dev"
-                PREFERENCES_IMAGE_NAME="orbiee-preferences-dev"
-                TYPE_AFFINITY_IMAGE_NAME="orbiee-type-affinity-refresh-dev"
-                ITEM_POPULARITY_IMAGE_NAME="orbiee-item-popularity-refresh-dev"
-                CLOUD_WORKER_SERVICE="orbiee-worker-dev"
-                EMOTION_DETECTION_SERVICE="orbiee-emotion-detection-dev"
-                ENVIRONMENT="dev"
-                ;;
-
-              feature/SearchRetrieval)
-                CLOUD_RUN_SERVICE="orbiee-backend-dev1"
-                IMAGE_NAME="orbiee-backend-dev1"
-                EMOTION_DETECTION_IMAGE_NAME="orbiee-emotion-detection-dev"
-                IMPRESSIONS_IMAGE_NAME="orbiee-impressions-analytics-dev1"
-                PREFERENCES_IMAGE_NAME="orbiee-preferences-dev1"
-                TYPE_AFFINITY_IMAGE_NAME="orbiee-type-affinity-refresh-dev1"
-                ITEM_POPULARITY_IMAGE_NAME="orbiee-item-popularity-refresh-dev1"
-                CLOUD_WORKER_SERVICE="orbiee-worker-dev1"
-                EMOTION_DETECTION_SERVICE="orbiee-emotion-detection-dev"
-                ENVIRONMENT="dev"
-                ;;
-
-              feature/*)
+              rearchitecture|feature/*)
                 CLOUD_RUN_SERVICE="orbiee-backend-dev"
                 IMAGE_NAME="orbiee-backend-dev"
                 EMOTION_DETECTION_IMAGE_NAME="orbiee-emotion-detection-dev"
