@@ -223,6 +223,12 @@ jobs:
             --output tsv)
 
           echo "ACR: $ACR_LOGIN_SERVER"
+          echo "IMAGE_NAME: $IMAGE_NAME"
+          echo "IMPRESSIONS_IMAGE_NAME: $IMPRESSIONS_IMAGE_NAME"
+          echo "PREFERENCES_IMAGE_NAME: $PREFERENCES_IMAGE_NAME"
+          echo "TYPE_AFFINITY_IMAGE_NAME: $TYPE_AFFINITY_IMAGE_NAME"
+          echo "ITEM_POPULARITY_IMAGE_NAME: $ITEM_POPULARITY_IMAGE_NAME"
+          echo "EMOTION_DETECTION_IMAGE_NAME: $EMOTION_DETECTION_IMAGE_NAME"
 
           docker build \
             -f apps/orbiee_core/Dockerfile \
