@@ -304,33 +304,69 @@ jobs:
             ORBIEE_SEARCH_BACKEND="${{ secrets.AZURE_ORBIEE_SEARCH_BACKEND_DEMO }}"
           fi
 
-          az containerapp secret set \
-            --name "$CLOUD_RUN_SERVICE" \
-            --resource-group "$RESOURCE_GROUP" \
-            --secrets \
-              DB_CONFIG="$DB_CONFIG" \
-              API_KEYS_JSON="$API_KEYS_JSON" \
-              REDIS_URL="$REDIS_URL" \
-              ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND"
+          # ------------------------------------------------------------
+          # Main Cloud Run / API Service
+          # ------------------------------------------------------------
+          if az containerapp show --name "$CLOUD_RUN_SERVICE" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "Updating existing Container App ($CLOUD_RUN_SERVICE)..."
+            
+            az containerapp secret set \
+              --name "$CLOUD_RUN_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --secrets \
+                DB_CONFIG="$DB_CONFIG" \
+                API_KEYS_JSON="$API_KEYS_JSON" \
+                REDIS_URL="$REDIS_URL" \
+                ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND"
 
-          az containerapp update \
-            --name "$CLOUD_RUN_SERVICE" \
-            --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE" \
-            --cpu 1 \
-            --memory 2Gi \
-            --set-env-vars \
-              ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
-              ORBIEE_DEBUG=false \
-              VERTEX_PROJECT=218142584790 \
-              RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-              RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-              RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
-              ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
-              DB_CONFIG=secretref:DB_CONFIG \
-              API_KEYS_JSON=secretref:API_KEYS_JSON \
-              REDIS_URL=secretref:REDIS_URL \
-              ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
+            az containerapp update \
+              --name "$CLOUD_RUN_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE" \
+              --cpu 1 \
+              --memory 2Gi \
+              --set-env-vars \
+                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+                ORBIEE_DEBUG=false \
+                VERTEX_PROJECT=218142584790 \
+                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
+                DB_CONFIG=secretref:DB_CONFIG \
+                API_KEYS_JSON=secretref:API_KEYS_JSON \
+                REDIS_URL=secretref:REDIS_URL \
+                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
+          else
+            echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
+            
+            az containerapp create \
+              --name "$CLOUD_RUN_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --image "$IMAGE" \
+              --cpu 1 \
+              --memory 2Gi \
+              --ingress external \
+              --target-port 80 \
+              --secrets \
+                DB_CONFIG="$DB_CONFIG" \
+                API_KEYS_JSON="$API_KEYS_JSON" \
+                REDIS_URL="$REDIS_URL" \
+                ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND" \
+              --set-env-vars \
+                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+                ORBIEE_DEBUG=false \
+                VERTEX_PROJECT=218142584790 \
+                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
+                DB_CONFIG=secretref:DB_CONFIG \
+                API_KEYS_JSON=secretref:API_KEYS_JSON \
+                REDIS_URL=secretref:REDIS_URL \
+                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
+          fi
 
           echo ""
           echo "Deployed: $CLOUD_RUN_SERVICE"
@@ -346,69 +382,105 @@ jobs:
           # ------------------------------------------------------------
           # Worker
           # ------------------------------------------------------------
-
-          az containerapp update \
-            --name "$CLOUD_WORKER_SERVICE" \
-            --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE" \
-            --cpu 1 \
-            --memory 2Gi \
-            --min-replicas 1 \
-            --max-replicas 1 \
-            --set-env-vars \
-              ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
-              ORBIEE_DEBUG=false \
-              VERTEX_PROJECT=218142584790 \
-              RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-              RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-              RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
-              DB_CONFIG=secretref:DB_CONFIG \
-              API_KEYS_JSON=secretref:API_KEYS_JSON \
-              REDIS_URL=secretref:REDIS_URL \
-              ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
-            --command python \
-            --args "-m" "orbiee.workers.session_worker"
+          if az containerapp show --name "$CLOUD_WORKER_SERVICE" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "Updating existing Worker ($CLOUD_WORKER_SERVICE)..."
+            az containerapp update \
+              --name "$CLOUD_WORKER_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE" \
+              --cpu 1 \
+              --memory 2Gi \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --set-env-vars \
+                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+                ORBIEE_DEBUG=false \
+                VERTEX_PROJECT=218142584790 \
+                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+                DB_CONFIG=secretref:DB_CONFIG \
+                API_KEYS_JSON=secretref:API_KEYS_JSON \
+                REDIS_URL=secretref:REDIS_URL \
+                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
+              --command python \
+              --args "-m" "orbiee.workers.session_worker"
+          else
+            echo "Creating new Worker ($CLOUD_WORKER_SERVICE)..."
+            az containerapp create \
+              --name "$CLOUD_WORKER_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --image "$IMAGE" \
+              --cpu 1 \
+              --memory 2Gi \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --set-env-vars \
+                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+                ORBIEE_DEBUG=false \
+                VERTEX_PROJECT=218142584790 \
+                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+                DB_CONFIG=secretref:DB_CONFIG \
+                API_KEYS_JSON=secretref:API_KEYS_JSON \
+                REDIS_URL=secretref:REDIS_URL \
+                ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
+              --command python \
+              --args "-m" "orbiee.workers.session_worker"
+          fi
 
           # ------------------------------------------------------------
           # Emotion Detection
           # ------------------------------------------------------------
-
           if [ "${{ github.event.client_payload.deploy_emotion_detection }}" = "yes" ]; then
-          
             EMOTION_IMAGE="${ACR_LOGIN_SERVER}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG}"
-          
-            az containerapp update \
-              --name "$EMOTION_DETECTION_SERVICE" \
-              --resource-group "$RESOURCE_GROUP" \
-              --image "$EMOTION_IMAGE" \
-              --cpu 4 \
-              --memory 8Gi \
-              --min-replicas 1 \
-              --max-replicas 1 \
-              --set-env-vars \
-                EMOTION_MODEL_HUB=hf
-          
+            
+            if az containerapp show --name "$EMOTION_DETECTION_SERVICE" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+              echo "Updating existing Emotion Detection..."
+              az containerapp update \
+                --name "$EMOTION_DETECTION_SERVICE" \
+                --resource-group "$RESOURCE_GROUP" \
+                --image "$EMOTION_IMAGE" \
+                --cpu 4 \
+                --memory 8Gi \
+                --min-replicas 1 \
+                --max-replicas 1 \
+                --set-env-vars \
+                  EMOTION_MODEL_HUB=hf
+            else
+              echo "Creating new Emotion Detection..."
+              az containerapp create \
+                --name "$EMOTION_DETECTION_SERVICE" \
+                --resource-group "$RESOURCE_GROUP" \
+                --environment "$CONTAINER_APP_ENVIRONMENT" \
+                --image "$EMOTION_IMAGE" \
+                --cpu 4 \
+                --memory 8Gi \
+                --min-replicas 1 \
+                --max-replicas 1 \
+                --target-port 80 \
+                --ingress external \
+                --set-env-vars \
+                  EMOTION_MODEL_HUB=hf
+            fi
           fi
 
           # ------------------------------------------------------------
           # Impressions Analytics Job
           # ------------------------------------------------------------
-
           if az containerapp job show \
             --name "${IMPRESSIONS_IMAGE_NAME}" \
             --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
-          
+            
             echo "Updating existing job..."
-          
             az containerapp job update \
               --name "${IMPRESSIONS_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
               --image "${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}"
-          
           else
-          
             echo "Creating new job..."
-          
             az containerapp job create \
               --name "${IMPRESSIONS_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
@@ -417,28 +489,22 @@ jobs:
               --replica-timeout 900 \
               --replica-retry-limit 1 \
               --image "${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}"
-          
           fi
 
           # ------------------------------------------------------------
           # Preferences Job
           # ------------------------------------------------------------
-
           if az containerapp job show \
             --name "${PREFERENCES_IMAGE_NAME}" \
             --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
-          
+            
             echo "Updating existing preferences job..."
-          
             az containerapp job update \
               --name "${PREFERENCES_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
               --image "${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}"
-          
           else
-          
             echo "Creating new preferences job..."
-          
             az containerapp job create \
               --name "${PREFERENCES_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
@@ -447,28 +513,22 @@ jobs:
               --replica-timeout 900 \
               --replica-retry-limit 1 \
               --image "${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}"
-          
           fi
 
           # ------------------------------------------------------------
           # Type Affinity Refresh Job
           # ------------------------------------------------------------
-
           if az containerapp job show \
             --name "${TYPE_AFFINITY_IMAGE_NAME}" \
             --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
-          
+            
             echo "Updating existing type affinity job..."
-          
             az containerapp job update \
               --name "${TYPE_AFFINITY_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
               --image "${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}"
-          
           else
-          
             echo "Creating new type affinity job..."
-          
             az containerapp job create \
               --name "${TYPE_AFFINITY_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
@@ -477,28 +537,22 @@ jobs:
               --replica-timeout 900 \
               --replica-retry-limit 1 \
               --image "${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}"
-          
           fi
 
           # ------------------------------------------------------------
           # Item Popularity Refresh Job
           # ------------------------------------------------------------
-
           if az containerapp job show \
             --name "${ITEM_POPULARITY_IMAGE_NAME}" \
             --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
-          
+            
             echo "Updating existing item popularity job..."
-          
             az containerapp job update \
               --name "${ITEM_POPULARITY_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
               --image "${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}"
-          
           else
-          
             echo "Creating new item popularity job..."
-          
             az containerapp job create \
               --name "${ITEM_POPULARITY_IMAGE_NAME}" \
               --resource-group "$RESOURCE_GROUP" \
@@ -507,7 +561,6 @@ jobs:
               --replica-timeout 900 \
               --replica-retry-limit 1 \
               --image "${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}"
-          
           fi
 
   deploy-frontend:
@@ -612,10 +665,14 @@ jobs:
 
           IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}"
 
-          az containerapp update \
+          # Use 'az containerapp up' to create it if missing or update it if it exists
+          az containerapp up \
             --name "$CLOUD_RUN_SERVICE" \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE"
+            --location "$REGION" \
+            --image "$IMAGE" \
+            --target-port 80 \
+            --ingress external
 
           echo ""
           echo "Deployed: $CLOUD_RUN_SERVICE"
