@@ -277,13 +277,13 @@ jobs:
           echo "Image: $IMAGE"
 
           if [ "$ENVIRONMENT" = "dev" ]; then
-            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config,identityref:system"
-            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
-            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
+            db_config="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config,identityref:system"
+            api_keys_json="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
+            redis_url="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
           else
-            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config-demo,identityref:system"
-            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
-            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
+            db_config="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config-demo,identityref:system"
+            api_keys_json="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
+            redis_url="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
           fi
 
           # ------------------------------------------------------------
@@ -296,9 +296,9 @@ jobs:
               --name "$CLOUD_RUN_SERVICE" \
               --resource-group "$RESOURCE_GROUP" \
               --secrets \
-                DB_CONFIG="$DB_CONFIG" \
-                API_KEYS_JSON="$API_KEYS_JSON" \
-                REDIS_URL="$REDIS_URL" \
+                db_config="$db_config" \
+                api_keys_json="$api_keys_json" \
+                redis_url="$redis_url"
 
             az containerapp update \
               --name "$CLOUD_RUN_SERVICE" \
@@ -307,16 +307,11 @@ jobs:
               --cpu 1 \
               --memory 2Gi \
               --set-env-vars \
-                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
                 ORBIEE_DEBUG=false \
-                VERTEX_PROJECT=218142584790 \
-                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
-                DB_CONFIG=secretref:DB_CONFIG \
-                API_KEYS_JSON=secretref:API_KEYS_JSON \
-                REDIS_URL=secretref:REDIS_URL \
+                DB_CONFIG=secretref:db_config \
+                API_KEYS_JSON=secretref:api_keys_json \
+                REDIS_URL=secretref:redis_url \
                 ORBIEE_SEARCH_BACKEND=internal
           else
             echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
@@ -333,16 +328,17 @@ jobs:
               --registry-server "$ACR_LOGIN_SERVER" \
               --registry-username "$AZCR_USERNAME" \
               --registry-password "$AZCR_PASSWORD" \
+              --system-assigned \
               --secrets \
-                DB_CONFIG="$DB_CONFIG" \
-                API_KEYS_JSON="$API_KEYS_JSON" \
-                REDIS_URL="$REDIS_URL" \
+                db_config="$db_config" \
+                api_keys_json="$api_keys_json" \
+                redis_url="$redis_url" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
-                DB_CONFIG=secretref:DB_CONFIG \
-                API_KEYS_JSON=secretref:API_KEYS_JSON \
-                REDIS_URL=secretref:REDIS_URL \
+                DB_CONFIG=secretref:db_config \
+                API_KEYS_JSON=secretref:api_keys_json \
+                REDIS_URL=secretref:redis_url \
                 ORBIEE_SEARCH_BACKEND=internal
           fi
 
@@ -362,6 +358,15 @@ jobs:
           # ------------------------------------------------------------
           if az containerapp show --name "$CLOUD_WORKER_SERVICE" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
             echo "Updating existing Worker ($CLOUD_WORKER_SERVICE)..."
+            
+            az containerapp secret set \
+              --name "$CLOUD_WORKER_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --secrets \
+                db_config="$db_config" \
+                api_keys_json="$api_keys_json" \
+                redis_url="$redis_url"
+
             az containerapp update \
               --name "$CLOUD_WORKER_SERVICE" \
               --resource-group "$RESOURCE_GROUP" \
@@ -372,9 +377,9 @@ jobs:
               --max-replicas 1 \
               --set-env-vars \
                 ORBIEE_DEBUG=false \
-                DB_CONFIG=secretref:DB_CONFIG \
-                API_KEYS_JSON=secretref:API_KEYS_JSON \
-                REDIS_URL=secretref:REDIS_URL \
+                DB_CONFIG=secretref:db_config \
+                API_KEYS_JSON=secretref:api_keys_json \
+                REDIS_URL=secretref:redis_url \
                 ORBIEE_SEARCH_BACKEND=internal \
               --command python \
               --args "-m" "orbiee.workers.session_worker"
@@ -392,12 +397,17 @@ jobs:
               --registry-server "$ACR_LOGIN_SERVER" \
               --registry-username "$AZCR_USERNAME" \
               --registry-password "$AZCR_PASSWORD" \
+              --system-assigned \
+              --secrets \
+                db_config="$db_config" \
+                api_keys_json="$api_keys_json" \
+                redis_url="$redis_url" \
               --env-vars \
                 ORBIEE_DEBUG=false \
-                DB_CONFIG=secretref:DB_CONFIG \
-                API_KEYS_JSON=secretref:API_KEYS_JSON \
-                REDIS_URL=secretref:REDIS_URL \
-                ORBIEE_SEARCH_BACKEND=sinternal \
+                DB_CONFIG=secretref:db_config \
+                API_KEYS_JSON=secretref:api_keys_json \
+                REDIS_URL=secretref:redis_url \
+                ORBIEE_SEARCH_BACKEND=internal \
               --command python \
               --args "-m" "orbiee.workers.session_worker"
           fi
