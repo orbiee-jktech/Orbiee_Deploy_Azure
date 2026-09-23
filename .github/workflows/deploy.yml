@@ -381,9 +381,8 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
-              --set \
-                properties.template.containers[0].command='["python"]' \
-                properties.template.containers[0].args='["-m", "orbiee.workers.session_worker"]'
+              --command python \
+              --args="-m" "orbiee.workers.session_worker"
           else
             echo "Creating new Worker ($CLOUD_WORKER_SERVICE)..."
             az containerapp create \
@@ -409,9 +408,8 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
-              --set \
-                properties.template.containers[0].command='["python"]' \
-                properties.template.containers[0].args='["-m", "orbiee.workers.session_worker"]'
+              --command python \
+              --args="-m" "orbiee.workers.session_worker"
           fi
 
           # ------------------------------------------------------------
