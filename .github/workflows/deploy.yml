@@ -252,7 +252,6 @@ jobs:
           az acr login --name "$ACR_NAME"
 
           docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}
-
           docker push ${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}
           docker push ${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}
           docker push ${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}
@@ -285,6 +284,9 @@ jobs:
             --name "$ACR_NAME" \
             --query loginServer \
             --output tsv)
+
+          AZCR_USERNAME=$(az acr credential show --name "$ACR_NAME" --query username --output tsv)
+          AZCR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query passwords[0].value --output tsv)
 
           IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}"
 
@@ -349,6 +351,9 @@ jobs:
               --memory 2Gi \
               --ingress external \
               --target-port 80 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --secrets \
                 DB_CONFIG="$DB_CONFIG" \
                 API_KEYS_JSON="$API_KEYS_JSON" \
@@ -416,6 +421,9 @@ jobs:
               --memory 2Gi \
               --min-replicas 1 \
               --max-replicas 1 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --set-env-vars \
                 ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
                 ORBIEE_DEBUG=false \
@@ -462,6 +470,9 @@ jobs:
                 --max-replicas 1 \
                 --target-port 80 \
                 --ingress external \
+                --registry-server "$ACR_LOGIN_SERVER" \
+                --registry-username "$AZCR_USERNAME" \
+                --registry-password "$AZCR_PASSWORD" \
                 --set-env-vars \
                   EMOTION_MODEL_HUB=hf
             fi
@@ -488,6 +499,9 @@ jobs:
               --trigger-type Manual \
               --replica-timeout 900 \
               --replica-retry-limit 1 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --image "${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}"
           fi
 
@@ -512,6 +526,9 @@ jobs:
               --trigger-type Manual \
               --replica-timeout 900 \
               --replica-retry-limit 1 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --image "${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}"
           fi
 
@@ -536,6 +553,9 @@ jobs:
               --trigger-type Manual \
               --replica-timeout 900 \
               --replica-retry-limit 1 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --image "${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}"
           fi
 
@@ -560,6 +580,9 @@ jobs:
               --trigger-type Manual \
               --replica-timeout 900 \
               --replica-retry-limit 1 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD" \
               --image "${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}"
           fi
 
@@ -657,22 +680,39 @@ jobs:
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
 
           RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+          CONTAINER_APP_ENVIRONMENT="${{ secrets.AZURE_CONTAINER_APP_ENVIRONMENT }}"
 
           ACR_LOGIN_SERVER=$(az acr show \
             --name "$ACR_NAME" \
             --query loginServer \
             --output tsv)
 
+          AZCR_USERNAME=$(az acr credential show --name "$ACR_NAME" --query username --output tsv)
+          AZCR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query passwords[0].value --output tsv)
+
           IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}"
 
-          # Use 'az containerapp up' to create it if missing or update it if it exists
-          az containerapp up \
-            --name "$CLOUD_RUN_SERVICE" \
-            --resource-group "$RESOURCE_GROUP" \
-            --location "$REGION" \
-            --image "$IMAGE" \
-            --target-port 80 \
-            --ingress external
+          if az containerapp show --name "$CLOUD_RUN_SERVICE" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "Updating existing Container App ($CLOUD_RUN_SERVICE)..."
+            az containerapp update \
+              --name "$CLOUD_RUN_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE"
+          else
+            echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
+            az containerapp create \
+              --name "$CLOUD_RUN_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --image "$IMAGE" \
+              --cpu 1 \
+              --memory 2Gi \
+              --ingress external \
+              --target-port 80 \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$AZCR_USERNAME" \
+              --registry-password "$AZCR_PASSWORD"
+          fi
 
           echo ""
           echo "Deployed: $CLOUD_RUN_SERVICE"
