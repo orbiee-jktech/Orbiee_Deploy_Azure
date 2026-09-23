@@ -382,7 +382,7 @@ jobs:
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
               --command python \
-              --args="-m" "orbiee.workers.session_worker"
+              --args "-m" "orbiee.workers.session_worker"
           else
             echo "Creating new Worker ($CLOUD_WORKER_SERVICE)..."
             az containerapp create \
@@ -409,7 +409,7 @@ jobs:
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
               --command python \
-              --args="-m" "orbiee.workers.session_worker"
+              --args "-m" "orbiee.workers.session_worker"
           fi
 
           # ------------------------------------------------------------
