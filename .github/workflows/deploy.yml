@@ -125,9 +125,9 @@ jobs:
           fi
 
           # Azure configuration
-          REGION="${{ vars.AZURE_REGION }}"
-          ARTIFACT_REGISTRY_REGION="${{ vars.AZURE_REGION }}"
-          ARTIFACT_REGISTRY_REPO="${{ vars.AZURE_CONTAINER_REGISTRY }}"
+          REGION="centralus"
+          ARTIFACT_REGISTRY_REGION="centralus"
+          ARTIFACT_REGISTRY_REPO="orbiee"
 
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "region=$REGION" >> $GITHUB_OUTPUT
