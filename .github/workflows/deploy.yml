@@ -341,13 +341,8 @@ jobs:
                 API_KEYS_JSON="$API_KEYS_JSON" \
                 REDIS_URL="$REDIS_URL" \
                 ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND" \
-              --set-env-vars \
-                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+              --env-vars \
                 ORBIEE_DEBUG=false \
-                VERTEX_PROJECT=218142584790 \
-                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
@@ -406,13 +401,8 @@ jobs:
               --registry-server "$ACR_LOGIN_SERVER" \
               --registry-username "$AZCR_USERNAME" \
               --registry-password "$AZCR_PASSWORD" \
-              --set-env-vars \
-                ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+              --env-vars \
                 ORBIEE_DEBUG=false \
-                VERTEX_PROJECT=218142584790 \
-                RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
-                RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
-                RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
                 DB_CONFIG=secretref:DB_CONFIG \
                 API_KEYS_JSON=secretref:API_KEYS_JSON \
                 REDIS_URL=secretref:REDIS_URL \
@@ -455,7 +445,7 @@ jobs:
                 --registry-server "$ACR_LOGIN_SERVER" \
                 --registry-username "$AZCR_USERNAME" \
                 --registry-password "$AZCR_PASSWORD" \
-                --set-env-vars \
+                --env-vars \
                   EMOTION_MODEL_HUB=hf
             fi
           fi
