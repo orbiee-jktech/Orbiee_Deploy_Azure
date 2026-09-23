@@ -37,7 +37,7 @@ jobs:
           BRANCH="${{ github.event.client_payload.ref }}"
           REPO="${{ github.event.client_payload.repository }}"
 
-          if [[ "$REPO" == "orbiee-jktech/Orbiee_Backend" ]]; then
+          if [[ "$REPO" == "orbiee-jktech/Orbiee_Backend_Azure" ]]; then
 
             case "$BRANCH" in
               rearchitecture|feature/emotion_detection)
@@ -78,7 +78,7 @@ jobs:
                 EMOTION_DETECTION_SERVICE="orbiee-emotion-detection-dev"
                 ENVIRONMENT="dev"
                 ;;
-                
+
               rearchitecture_demo)
                 CLOUD_RUN_SERVICE="orbiee-backend"
                 IMAGE_NAME="orbiee-backend"
@@ -91,7 +91,7 @@ jobs:
                 EMOTION_DETECTION_SERVICE="orbiee-emotion-detection"
                 ENVIRONMENT="demo"
                 ;;
-                
+
               *)
                 echo "Unsupported backend branch: $BRANCH"
                 exit 1
@@ -110,12 +110,12 @@ jobs:
                 CLOUD_RUN_SERVICE="orbiee-dev1"
                 IMAGE_NAME="orbiee-dev1"
                 ;;
-                
+
               demov1|rearchitecture_demo)
                 CLOUD_RUN_SERVICE="orbiee"
                 IMAGE_NAME="orbiee-demo"
                 ;;
-                
+
               *)
                 echo "Unsupported frontend branch: $BRANCH"
                 exit 1
@@ -124,37 +124,37 @@ jobs:
 
           fi
 
-          REGION="us-central1"
-          ARTIFACT_REGISTRY_REGION="us-central1"
-          ARTIFACT_REGISTRY_REPO="orbiee"
+          # Azure configuration
+          REGION="${{ vars.AZURE_REGION }}"
+          ARTIFACT_REGISTRY_REGION="${{ vars.AZURE_REGION }}"
+          ARTIFACT_REGISTRY_REPO="${{ vars.AZURE_CONTAINER_REGISTRY }}"
 
-          echo "branch=$BRANCH"                                         >> $GITHUB_OUTPUT
-          echo "region=$REGION"                                         >> $GITHUB_OUTPUT
-          echo "artifact_registry_region=$ARTIFACT_REGISTRY_REGION"    >> $GITHUB_OUTPUT
-          echo "artifact_registry_repo=$ARTIFACT_REGISTRY_REPO"        >> $GITHUB_OUTPUT
-          echo "cloud_run_service=$CLOUD_RUN_SERVICE"                   >> $GITHUB_OUTPUT
-          echo "cloud_worker_service=$CLOUD_WORKER_SERVICE"             >> $GITHUB_OUTPUT
-          echo "image_name=$IMAGE_NAME"                                 >> $GITHUB_OUTPUT
-          echo "emotion_detection_service=$EMOTION_DETECTION_SERVICE"   >> $GITHUB_OUTPUT
-          echo "emotion_detection_image_name=$EMOTION_DETECTION_IMAGE_NAME"  >> $GITHUB_OUTPUT
-          echo "impressions_image_name=$IMPRESSIONS_IMAGE_NAME"         >> $GITHUB_OUTPUT
-          echo "preferences_image_name=$PREFERENCES_IMAGE_NAME"         >> $GITHUB_OUTPUT
-          echo "type_affinity_image_name=$TYPE_AFFINITY_IMAGE_NAME"     >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "region=$REGION" >> $GITHUB_OUTPUT
+          echo "artifact_registry_region=$ARTIFACT_REGISTRY_REGION" >> $GITHUB_OUTPUT
+          echo "artifact_registry_repo=$ARTIFACT_REGISTRY_REPO" >> $GITHUB_OUTPUT
+          echo "cloud_run_service=$CLOUD_RUN_SERVICE" >> $GITHUB_OUTPUT
+          echo "cloud_worker_service=$CLOUD_WORKER_SERVICE" >> $GITHUB_OUTPUT
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "emotion_detection_service=$EMOTION_DETECTION_SERVICE" >> $GITHUB_OUTPUT
+          echo "emotion_detection_image_name=$EMOTION_DETECTION_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "impressions_image_name=$IMPRESSIONS_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "preferences_image_name=$PREFERENCES_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "type_affinity_image_name=$TYPE_AFFINITY_IMAGE_NAME" >> $GITHUB_OUTPUT
           echo "item_popularity_image_name=$ITEM_POPULARITY_IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "environment=$ENVIRONMENT"                               >> $GITHUB_OUTPUT
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Authenticate to Azure
+        uses: azure/login@v2
         with:
-          credentials_json: "${{ secrets.GCP_SAKEY }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: retail-jkommerce-poc
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
   deploy-backend:
-    if: ${{ github.event.client_payload.repository == 'orbiee-jktech/Orbiee_Backend' }}
+    if: ${{ github.event.client_payload.repository == 'orbiee-jktech/Orbiee_Backend_Azure' }}
     runs-on: ubuntu-latest
     needs: setup
 
@@ -167,15 +167,14 @@ jobs:
           token: ${{ secrets.PRIVATETOKENPULL }}
           fetch-depth: 0
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Authenticate to Azure
+        uses: azure/login@v2
         with:
-          credentials_json: "${{ secrets.GCP_SAKEY }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: retail-jkommerce-poc
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Check for Changes
         id: check
@@ -199,10 +198,10 @@ jobs:
           fi
 
           if [[ -n "$CHANGED" ]]; then
-            echo "✅ Changes detected, will deploy"
+            echo "Changes detected, will deploy"
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
-            echo "⏭️  No relevant changes, skipping"
+            echo "No relevant changes, skipping"
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
@@ -215,325 +214,304 @@ jobs:
       - name: Build and Push Docker Image
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          BRANCH="${{ needs.setup.outputs.branch }}"
-          AR_REGION="${{ needs.setup.outputs.artifact_registry_region }}"
-          AR_REPO="${{ needs.setup.outputs.artifact_registry_repo }}"
+          ACR_NAME="${{ needs.setup.outputs.artifact_registry_repo }}"
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
-          EMOTION_DETECTION_IMAGE_NAME="${{ needs.setup.outputs.emotion_detection_image_name }}"
-          IMPRESSIONS_IMAGE_NAME="${{ needs.setup.outputs.impressions_image_name }}"
-          PREFERENCES_IMAGE_NAME="${{ needs.setup.outputs.preferences_image_name }}"
-          TYPE_AFFINITY_IMAGE_NAME="${{ needs.setup.outputs.type_affinity_image_name }}"
-          ITEM_POPULARITY_IMAGE_NAME="${{ needs.setup.outputs.item_popularity_image_name }}"
+
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --query loginServer \
+            --output tsv)
+
+          echo "ACR: $ACR_LOGIN_SERVER"
 
           docker build \
             -f apps/orbiee_core/Dockerfile \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG} \
             .
 
           docker build \
             -f apps/impressions_analytics_job/Dockerfile \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMPRESSIONS_IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG} \
             .
 
           docker build \
             -f apps/affinity_learning_service/Dockerfile \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${PREFERENCES_IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG} \
             .
 
           docker build \
             -f apps/type_affinity_refresh_job/Dockerfile \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG} \
             .
 
           docker build \
             -f apps/item_popularity_refresh_job/Dockerfile \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG} \
             .
 
-          gcloud auth configure-docker ${AR_REGION}-docker.pkg.dev --quiet
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG}
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMPRESSIONS_IMAGE_NAME}:${TAG}
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${PREFERENCES_IMAGE_NAME}:${TAG}
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}
-          
+          az acr login --name "$ACR_NAME"
+
+          docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}
+
+          docker push ${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}
+          docker push ${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}
+          docker push ${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}
+          docker push ${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}
+
           if [ "${{ github.event.client_payload.deploy_emotion_detection }}" = "yes" ]; then
             docker build \
               -f apps/emotion_detection_service/Dockerfile \
-              -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG} \
+              -t ${ACR_LOGIN_SERVER}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG} \
               apps/emotion_detection_service
-
-            docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG}
+          
+            docker push ${ACR_LOGIN_SERVER}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG}
           fi
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Azure Container Apps
         if: steps.check.outputs.has_changes == 'true'
         run: |
           CLOUD_RUN_SERVICE="${{ needs.setup.outputs.cloud_run_service }}"
           CLOUD_WORKER_SERVICE="${{ needs.setup.outputs.cloud_worker_service }}"
           EMOTION_DETECTION_SERVICE="${{ needs.setup.outputs.emotion_detection_service }}"
           REGION="${{ needs.setup.outputs.region }}"
-          AR_REGION="${{ needs.setup.outputs.artifact_registry_region }}"
-          AR_REPO="${{ needs.setup.outputs.artifact_registry_repo }}"
+          ACR_NAME="${{ needs.setup.outputs.artifact_registry_repo }}"
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
-          EMOTION_DETECTION_IMAGE_NAME="${{ needs.setup.outputs.emotion_detection_image_name }}"
-          IMPRESSIONS_IMAGE_NAME="${{ needs.setup.outputs.impressions_image_name }}"
-          PREFERENCES_IMAGE_NAME="${{ needs.setup.outputs.preferences_image_name }}"
-          TYPE_AFFINITY_IMAGE_NAME="${{ needs.setup.outputs.type_affinity_image_name }}"
-          ITEM_POPULARITY_IMAGE_NAME="${{ needs.setup.outputs.item_popularity_image_name }}"
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
 
+          RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+          CONTAINER_APP_ENVIRONMENT="${{ secrets.AZURE_CONTAINER_APP_ENVIRONMENT }}"
+
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --query loginServer \
+            --output tsv)
+
+          IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}"
+
           echo "Deploying for env: $ENVIRONMENT"
+          echo "Container App: $CLOUD_RUN_SERVICE"
+          echo "Image: $IMAGE"
 
           if [ "$ENVIRONMENT" = "dev" ]; then
-            SECRETS="DB_CONFIG=orbiee-db-config:latest,API_KEYS_JSON=orbiee-api-keys:latest,REDIS_URL=orbiee-redis-url:latest,ORBIEE_SEARCH_BACKEND=orbiee-search-backend:latest"
+            DB_CONFIG="${{ secrets.AZURE_DB_CONFIG }}"
+            API_KEYS_JSON="${{ secrets.AZURE_API_KEYS_JSON }}"
+            REDIS_URL="${{ secrets.AZURE_REDIS_URL }}"
+            ORBIEE_SEARCH_BACKEND="${{ secrets.AZURE_ORBIEE_SEARCH_BACKEND }}"
           else
-            SECRETS="DB_CONFIG=orbiee-db-config-demo:latest,API_KEYS_JSON=orbiee-api-keys:latest,REDIS_URL=orbiee-demo-redis-url:latest,ORBIEE_SEARCH_BACKEND=orbiee-search-backend-demo:latest"
+            DB_CONFIG="${{ secrets.AZURE_DB_CONFIG_DEMO }}"
+            API_KEYS_JSON="${{ secrets.AZURE_API_KEYS_JSON }}"
+            REDIS_URL="${{ secrets.AZURE_DEMO_REDIS_URL }}"
+            ORBIEE_SEARCH_BACKEND="${{ secrets.AZURE_ORBIEE_SEARCH_BACKEND_DEMO }}"
           fi
 
-          echo "Secrets: $SECRETS"
+          az containerapp secret set \
+            --name "$CLOUD_RUN_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --secrets \
+              DB_CONFIG="$DB_CONFIG" \
+              API_KEYS_JSON="$API_KEYS_JSON" \
+              REDIS_URL="$REDIS_URL" \
+              ORBIEE_SEARCH_BACKEND="$ORBIEE_SEARCH_BACKEND"
 
-          gcloud run deploy ${CLOUD_RUN_SERVICE} \
-            --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG} \
-            --platform=managed \
-            --memory=2Gi \
-            --region=${REGION} \
-            --timeout=3600 \
-            --set-secrets=${SECRETS} \
-            --set-env-vars="ORBIEE_GCP_PROJECT=retail-jkommerce-poc,ORBIEE_DEBUG=false,VERTEX_PROJECT=218142584790,RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy,RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2,RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search,ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}-218142584790.us-central1.run.app" \
-            --quiet
-
-          gcloud run deploy ${CLOUD_WORKER_SERVICE} \
-            --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG} \
-            --platform=managed \
-            --memory=2Gi \
-            --region=${REGION} \
-            --set-secrets=${SECRETS} \
-            --set-env-vars="ORBIEE_GCP_PROJECT=retail-jkommerce-poc,ORBIEE_DEBUG=false,VERTEX_PROJECT=218142584790,RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy,RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2,RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search" \
-            --command=python \
-            --args=-m,orbiee.workers.session_worker \
-            --min-instances=1 \
-            --max-instances=1 \
-            --quiet
-
-          gcloud run services add-iam-policy-binding ${CLOUD_RUN_SERVICE} \
-            --region=${REGION} \
-            --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-            --role="roles/run.invoker"
-
-          gcloud run services add-iam-policy-binding ${CLOUD_WORKER_SERVICE} \
-            --region=${REGION} \
-            --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-            --role="roles/run.invoker"
-
-          if [ "${{ github.event.client_payload.deploy_emotion_detection }}" = "yes" ]; then
-            gcloud run deploy ${EMOTION_DETECTION_SERVICE} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG} \
-              --platform=managed \
-              --cpu=4 \
-              --memory=8Gi \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --set-env-vars="EMOTION_MODEL_HUB=hf" \
-              --min-instances=1 \
-              --max-instances=1 \
-              --quiet
-
-            gcloud run services add-iam-policy-binding ${EMOTION_DETECTION_SERVICE} \
-              --region=${REGION} \
-              --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-              --role="roles/run.invoker"
-          fi
-
-          if gcloud run jobs describe ${IMPRESSIONS_IMAGE_NAME} --region=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing job..."
-            gcloud run jobs update ${IMPRESSIONS_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMPRESSIONS_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          else
-            echo "Creating new job..."
-            gcloud run jobs create ${IMPRESSIONS_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMPRESSIONS_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          fi
-
-          gcloud run jobs add-iam-policy-binding ${IMPRESSIONS_IMAGE_NAME} \
-              --region=${REGION} \
-              --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-              --role="roles/run.invoker"
-
-          if gcloud scheduler jobs describe ${IMPRESSIONS_IMAGE_NAME}-weekly --location=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing job scheduler..."
-            gcloud scheduler jobs update http ${IMPRESSIONS_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 6 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${IMPRESSIONS_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          else
-            echo "Creating new job scheduler..."
-            gcloud scheduler jobs create http ${IMPRESSIONS_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 6 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${IMPRESSIONS_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          fi
-
-          if gcloud run jobs describe ${PREFERENCES_IMAGE_NAME} --region=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing preferences job..."
-            gcloud run jobs update ${PREFERENCES_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${PREFERENCES_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          else
-            echo "Creating new preferences job..."
-            gcloud run jobs create ${PREFERENCES_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${PREFERENCES_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          fi
-
-          gcloud run jobs add-iam-policy-binding ${PREFERENCES_IMAGE_NAME} \
-              --region=${REGION} \
-              --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-              --role="roles/run.invoker"
-
-          if gcloud scheduler jobs describe ${PREFERENCES_IMAGE_NAME}-weekly --location=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing preferences job scheduler..."
-            gcloud scheduler jobs update http ${PREFERENCES_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 8 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${PREFERENCES_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          else
-            echo "Creating new preferences job scheduler..."
-            gcloud scheduler jobs create http ${PREFERENCES_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 8 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${PREFERENCES_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          fi
-
-          # ── type_affinity refresh job (weekly, Mon 04:00) ──────────────────
-          if gcloud run jobs describe ${TYPE_AFFINITY_IMAGE_NAME} --region=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing type_affinity job..."
-            gcloud run jobs update ${TYPE_AFFINITY_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          else
-            echo "Creating new type_affinity job..."
-            gcloud run jobs create ${TYPE_AFFINITY_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          fi
-
-          gcloud run jobs add-iam-policy-binding ${TYPE_AFFINITY_IMAGE_NAME} \
-              --region=${REGION} \
-              --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-              --role="roles/run.invoker"
-
-          if gcloud scheduler jobs describe ${TYPE_AFFINITY_IMAGE_NAME}-weekly --location=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing type_affinity job scheduler..."
-            gcloud scheduler jobs update http ${TYPE_AFFINITY_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 4 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${TYPE_AFFINITY_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          else
-            echo "Creating new type_affinity job scheduler..."
-            gcloud scheduler jobs create http ${TYPE_AFFINITY_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 4 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${TYPE_AFFINITY_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          fi
-
-          # ── item_popularity refresh job (weekly, Mon 05:00) ────────────────
-          if gcloud run jobs describe ${ITEM_POPULARITY_IMAGE_NAME} --region=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing item_popularity job..."
-            gcloud run jobs update ${ITEM_POPULARITY_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          else
-            echo "Creating new item_popularity job..."
-            gcloud run jobs create ${ITEM_POPULARITY_IMAGE_NAME} \
-              --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG} \
-              --region=${REGION} \
-              --set-secrets=${SECRETS} \
-              --max-retries=1 \
-              --service-account="218142584790-compute@developer.gserviceaccount.com" \
-              --task-timeout=15m
-          fi
-
-          gcloud run jobs add-iam-policy-binding ${ITEM_POPULARITY_IMAGE_NAME} \
-              --region=${REGION} \
-              --member="serviceAccount:218142584790-compute@developer.gserviceaccount.com" \
-              --role="roles/run.invoker"
-
-          if gcloud scheduler jobs describe ${ITEM_POPULARITY_IMAGE_NAME}-weekly --location=${REGION} >/dev/null 2>&1; then
-            echo "Updating existing item_popularity job scheduler..."
-            gcloud scheduler jobs update http ${ITEM_POPULARITY_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 5 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${ITEM_POPULARITY_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          else
-            echo "Creating new item_popularity job scheduler..."
-            gcloud scheduler jobs create http ${ITEM_POPULARITY_IMAGE_NAME}-weekly \
-              --location=${REGION} \
-              --schedule="0 5 * * 1" \
-              --uri="https://run.googleapis.com/v2/projects/retail-jkommerce-poc/locations/${REGION}/jobs/${ITEM_POPULARITY_IMAGE_NAME}:run" \
-              --http-method=POST \
-              --oauth-service-account-email="218142584790-compute@developer.gserviceaccount.com" \
-              --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-          fi
+          az containerapp update \
+            --name "$CLOUD_RUN_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE" \
+            --cpu 1 \
+            --memory 2Gi \
+            --set-env-vars \
+              ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+              ORBIEE_DEBUG=false \
+              VERTEX_PROJECT=218142584790 \
+              RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+              RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+              RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+              ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
+              DB_CONFIG=secretref:DB_CONFIG \
+              API_KEYS_JSON=secretref:API_KEYS_JSON \
+              REDIS_URL=secretref:REDIS_URL \
+              ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND
 
           echo ""
-          echo "✅ Deployed: $CLOUD_RUN_SERVICE"
-          echo "🌍 URL: $(gcloud run services describe ${CLOUD_RUN_SERVICE} \
-            --region=${REGION} --format='value(status.url)')"
+          echo "Deployed: $CLOUD_RUN_SERVICE"
+
+          URL=$(az containerapp show \
+            --name "$CLOUD_RUN_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+
+          echo "URL: https://${URL}"
+
+          # ------------------------------------------------------------
+          # Worker
+          # ------------------------------------------------------------
+
+          az containerapp update \
+            --name "$CLOUD_WORKER_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE" \
+            --cpu 1 \
+            --memory 2Gi \
+            --min-replicas 1 \
+            --max-replicas 1 \
+            --set-env-vars \
+              ORBIEE_GCP_PROJECT=retail-jkommerce-poc \
+              ORBIEE_DEBUG=false \
+              VERTEX_PROJECT=218142584790 \
+              RETAIL_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/servingConfigs/recommenedfy \
+              RETAIL_BRANCH=projects/218142584790/locations/global/catalogs/default_catalog/branches/2 \
+              RETAIL_SEARCH_PLACEMENT=projects/218142584790/locations/global/catalogs/default_catalog/placements/default_search \
+              DB_CONFIG=secretref:DB_CONFIG \
+              API_KEYS_JSON=secretref:API_KEYS_JSON \
+              REDIS_URL=secretref:REDIS_URL \
+              ORBIEE_SEARCH_BACKEND=secretref:ORBIEE_SEARCH_BACKEND \
+            --command python \
+            --args "-m" "orbiee.workers.session_worker"
+
+          # ------------------------------------------------------------
+          # Emotion Detection
+          # ------------------------------------------------------------
+
+          if [ "${{ github.event.client_payload.deploy_emotion_detection }}" = "yes" ]; then
+          
+            EMOTION_IMAGE="${ACR_LOGIN_SERVER}/${EMOTION_DETECTION_IMAGE_NAME}:${TAG}"
+          
+            az containerapp update \
+              --name "$EMOTION_DETECTION_SERVICE" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$EMOTION_IMAGE" \
+              --cpu 4 \
+              --memory 8Gi \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --set-env-vars \
+                EMOTION_MODEL_HUB=hf
+          
+          fi
+
+          # ------------------------------------------------------------
+          # Impressions Analytics Job
+          # ------------------------------------------------------------
+
+          if az containerapp job show \
+            --name "${IMPRESSIONS_IMAGE_NAME}" \
+            --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+          
+            echo "Updating existing job..."
+          
+            az containerapp job update \
+              --name "${IMPRESSIONS_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}"
+          
+          else
+          
+            echo "Creating new job..."
+          
+            az containerapp job create \
+              --name "${IMPRESSIONS_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --trigger-type Manual \
+              --replica-timeout 900 \
+              --replica-retry-limit 1 \
+              --image "${ACR_LOGIN_SERVER}/${IMPRESSIONS_IMAGE_NAME}:${TAG}"
+          
+          fi
+
+          # ------------------------------------------------------------
+          # Preferences Job
+          # ------------------------------------------------------------
+
+          if az containerapp job show \
+            --name "${PREFERENCES_IMAGE_NAME}" \
+            --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+          
+            echo "Updating existing preferences job..."
+          
+            az containerapp job update \
+              --name "${PREFERENCES_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}"
+          
+          else
+          
+            echo "Creating new preferences job..."
+          
+            az containerapp job create \
+              --name "${PREFERENCES_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --trigger-type Manual \
+              --replica-timeout 900 \
+              --replica-retry-limit 1 \
+              --image "${ACR_LOGIN_SERVER}/${PREFERENCES_IMAGE_NAME}:${TAG}"
+          
+          fi
+
+          # ------------------------------------------------------------
+          # Type Affinity Refresh Job
+          # ------------------------------------------------------------
+
+          if az containerapp job show \
+            --name "${TYPE_AFFINITY_IMAGE_NAME}" \
+            --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+          
+            echo "Updating existing type affinity job..."
+          
+            az containerapp job update \
+              --name "${TYPE_AFFINITY_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}"
+          
+          else
+          
+            echo "Creating new type affinity job..."
+          
+            az containerapp job create \
+              --name "${TYPE_AFFINITY_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --trigger-type Manual \
+              --replica-timeout 900 \
+              --replica-retry-limit 1 \
+              --image "${ACR_LOGIN_SERVER}/${TYPE_AFFINITY_IMAGE_NAME}:${TAG}"
+          
+          fi
+
+          # ------------------------------------------------------------
+          # Item Popularity Refresh Job
+          # ------------------------------------------------------------
+
+          if az containerapp job show \
+            --name "${ITEM_POPULARITY_IMAGE_NAME}" \
+            --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+          
+            echo "Updating existing item popularity job..."
+          
+            az containerapp job update \
+              --name "${ITEM_POPULARITY_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}"
+          
+          else
+          
+            echo "Creating new item popularity job..."
+          
+            az containerapp job create \
+              --name "${ITEM_POPULARITY_IMAGE_NAME}" \
+              --resource-group "$RESOURCE_GROUP" \
+              --environment "$CONTAINER_APP_ENVIRONMENT" \
+              --trigger-type Manual \
+              --replica-timeout 900 \
+              --replica-retry-limit 1 \
+              --image "${ACR_LOGIN_SERVER}/${ITEM_POPULARITY_IMAGE_NAME}:${TAG}"
+          
+          fi
 
   deploy-frontend:
-    if: ${{ github.event.client_payload.repository == 'orbiee-jktech/Orbiee_FrontEnd' }}
+    if: ${{ github.event.client_payload.repository == 'orbiee-jktech/Orbiee_FrontEnd_Azure' }}
     runs-on: ubuntu-latest
     needs: setup
 
@@ -546,15 +524,14 @@ jobs:
           token: ${{ secrets.PRIVATETOKENPULL }}
           fetch-depth: 0
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Authenticate to Azure
+        uses: azure/login@v2
         with:
-          credentials_json: "${{ secrets.GCP_SAKEY }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: retail-jkommerce-poc
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Check for Changes
         id: check
@@ -578,10 +555,10 @@ jobs:
           fi
 
           if [[ -n "$CHANGED" ]]; then
-            echo "✅ Changes detected, will deploy"
+            echo "Changes detected, will deploy"
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
-            echo "⏭️  No relevant changes, skipping"
+            echo "No relevant changes, skipping"
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
@@ -594,42 +571,59 @@ jobs:
       - name: Build and Push Docker Image
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          BRANCH="${{ needs.setup.outputs.branch }}"
-          AR_REGION="${{ needs.setup.outputs.artifact_registry_region }}"
-          AR_REPO="${{ needs.setup.outputs.artifact_registry_repo }}"
+          ACR_NAME="${{ needs.setup.outputs.artifact_registry_repo }}"
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
+
           REACT_APP_ENV="dev"
 
           # case "$BRANCH" in
-          #   dev|rearchitecture)  REACT_APP_ENV="dev" ;;
-          #   demov1|rearchitecture_demo) REACT_APP_ENV="demov1"        ;;
+          #   dev|rearchitecture) REACT_APP_ENV="dev" ;;
+          #   demov1|rearchitecture_demo) REACT_APP_ENV="demov1" ;;
           # esac
+
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --query loginServer \
+            --output tsv)
 
           docker build \
             --build-arg REACT_APP_ENV=${REACT_APP_ENV} \
-            -t ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG} \
+            -t ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG} \
             .
 
-          gcloud auth configure-docker ${AR_REGION}-docker.pkg.dev --quiet
-          docker push ${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG}
+          az acr login --name "$ACR_NAME"
 
-      - name: Deploy to Cloud Run
+          docker push ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}
+
+      - name: Deploy to Azure Container Apps
         if: steps.check.outputs.has_changes == 'true'
         run: |
           CLOUD_RUN_SERVICE="${{ needs.setup.outputs.cloud_run_service }}"
           REGION="${{ needs.setup.outputs.region }}"
-          AR_REGION="${{ needs.setup.outputs.artifact_registry_region }}"
-          AR_REPO="${{ needs.setup.outputs.artifact_registry_repo }}"
+          ACR_NAME="${{ needs.setup.outputs.artifact_registry_repo }}"
           IMAGE_NAME="${{ needs.setup.outputs.image_name }}"
 
-          gcloud run deploy ${CLOUD_RUN_SERVICE} \
-            --image=${AR_REGION}-docker.pkg.dev/retail-jkommerce-poc/${AR_REPO}/${IMAGE_NAME}:${TAG} \
-            --platform=managed \
-            --region=${REGION} \
-            --allow-unauthenticated \
-            --quiet
+          RESOURCE_GROUP="${{ secrets.AZURE_RESOURCE_GROUP }}"
+
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --query loginServer \
+            --output tsv)
+
+          IMAGE="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${TAG}"
+
+          az containerapp update \
+            --name "$CLOUD_RUN_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE"
 
           echo ""
-          echo "✅ Deployed: $CLOUD_RUN_SERVICE"
-          echo "🌍 URL: $(gcloud run services describe ${CLOUD_RUN_SERVICE} \
-            --region=${REGION} --format='value(status.url)')"
+          echo "Deployed: $CLOUD_RUN_SERVICE"
+
+          URL=$(az containerapp show \
+            --name "$CLOUD_RUN_SERVICE" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+
+          echo "URL: https://${URL}"
