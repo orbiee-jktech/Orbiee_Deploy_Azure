@@ -277,13 +277,13 @@ jobs:
           echo "Image: $IMAGE"
 
           if [ "$ENVIRONMENT" = "dev" ]; then
-            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config"
-            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys"
-            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url"
+            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config,identityref:system"
+            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
+            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
           else
-            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config-demo"
-            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys"
-            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url"
+            DB_CONFIG="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-db-config-demo,identityref:system"
+            API_KEYS_JSON="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-api-keys,identityref:system"
+            REDIS_URL="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
           fi
 
           # ------------------------------------------------------------
