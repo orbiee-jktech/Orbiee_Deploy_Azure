@@ -47,7 +47,7 @@ jobs:
                 IMPRESSIONS_IMAGE_NAME="orbiee-impressions-analytics-dev"
                 PREFERENCES_IMAGE_NAME="orbiee-preferences-dev"
                 TYPE_AFFINITY_IMAGE_NAME="orbiee-type-affinity-refresh-dev"
-                ITEM_POPULARITY_IMAGE_NAME="orbiee-item-popularity-refresh-dev"
+                ITEM_POPULARITY_IMAGE_NAME="orbiee-item-popularity-ref-dev"
                 CLOUD_WORKER_SERVICE="orbiee-worker-dev"
                 EMOTION_DETECTION_SERVICE="orbiee-emotion-detection-dev"
                 ENVIRONMENT="dev"
