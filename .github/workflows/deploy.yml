@@ -286,6 +286,12 @@ jobs:
             redis_url="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-redis-url,identityref:system"
           fi
 
+          azure_speech_api_key="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-speech-api-key,identityref:system"
+          azure_speech_endpoint="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-speech-endpoint,identityref:system"
+          azure_openai_api_key="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-api-key,identityref:system"
+          azure_openai_api_version="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-api-version,identityref:system"
+          azure_openai_endpoint="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-endpoint,identityref:system"
+
           # ------------------------------------------------------------
           # Main Cloud Run / API Service
           # ------------------------------------------------------------
@@ -298,7 +304,12 @@ jobs:
               --secrets \
                 db-config="$db_config" \
                 api-keys-json="$api_keys_json" \
-                redis-url="$redis_url"
+                redis-url="$redis_url" \
+                azure-speech-api-key="$azure_speech_api_key" \
+                azure-speech-endpoint="$azure_speech_endpoint" \
+                azure-openai-api-key="$azure_openai_api_key" \
+                azure-openai-api-version="$azure_openai_api_version" \
+                azure-openai-endpoint="$azure_openai_endpoint" \
 
             az containerapp update \
               --name "$CLOUD_RUN_SERVICE" \
@@ -308,11 +319,17 @@ jobs:
               --memory 2Gi \
               --set-env-vars \
                 ORBIEE_DEBUG=false \
-                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
+                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.whitepond-a64d1ba1.centralus.azurecontainerapps.io \
                 DB_CONFIG=secretref:db-config \
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
-                ORBIEE_SEARCH_BACKEND=internal
+                ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
+                AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
+                AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
+                AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
+                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
+
           else
             echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
             
@@ -333,13 +350,23 @@ jobs:
                 db-config="$db_config" \
                 api-keys-json="$api_keys_json" \
                 redis-url="$redis_url" \
+                azure-speech-api-key="$azure_speech_api_key" \
+                azure-speech-endpoint="$azure_speech_endpoint" \
+                azure-openai-api-key="$azure_openai_api_key" \
+                azure-openai-api-version="$azure_openai_api_version" \
+                azure-openai-endpoint="$azure_openai_endpoint" \
               --env-vars \
                 ORBIEE_DEBUG=false \
-                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.${REGION}.azurecontainerapps.io \
+                ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.whitepond-a64d1ba1.centralus.azurecontainerapps.io \
                 DB_CONFIG=secretref:db-config \
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
-                ORBIEE_SEARCH_BACKEND=internal
+                ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
+                AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
+                AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
+                AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
+                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version
           fi
 
           echo ""
@@ -365,7 +392,12 @@ jobs:
               --secrets \
                 db-config="$db_config" \
                 api-keys-json="$api_keys_json" \
-                redis-url="$redis_url"
+                redis-url="$redis_url" \
+                azure-speech-api-key="$azure_speech_api_key" \
+                azure-speech-endpoint="$azure_speech_endpoint" \
+                azure-openai-api-key="$azure_openai_api_key" \
+                azure-openai-api-version="$azure_openai_api_version" \
+                azure-openai-endpoint="$azure_openai_endpoint" \
 
             az containerapp update \
               --name "$CLOUD_WORKER_SERVICE" \
@@ -381,6 +413,11 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
+                AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
+                AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
+                AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
+                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
               --command python \
               --args "-m orbiee.workers.session_worker"
           else
@@ -402,12 +439,22 @@ jobs:
                 db-config="$db_config" \
                 api-keys-json="$api_keys_json" \
                 redis-url="$redis_url" \
+                azure-speech-api-key="$azure_speech_api_key" \
+                azure-speech-endpoint="$azure_speech_endpoint" \
+                azure-openai-api-key="$azure_openai_api_key" \
+                azure-openai-api-version="$azure_openai_api_version" \
+                azure-openai-endpoint="$azure_openai_endpoint" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 DB_CONFIG=secretref:db-config \
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
+                AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
+                AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
+                AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
+                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
               --command python \
               --args "-m orbiee.workers.session_worker"
           fi
