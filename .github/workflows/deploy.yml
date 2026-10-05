@@ -291,6 +291,7 @@ jobs:
           azure_openai_api_key="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-api-key,identityref:system"
           azure_openai_api_version="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-api-version,identityref:system"
           azure_openai_endpoint="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-endpoint,identityref:system"
+          azure_servicebus_connection_string="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-servicebus-connection-string,identityref:system"
 
           # ------------------------------------------------------------
           # Main Cloud Run / API Service
@@ -310,6 +311,7 @@ jobs:
                 azure-openai-api-key="$azure_openai_api_key" \
                 azure-openai-api-version="$azure_openai_api_version" \
                 azure-openai-endpoint="$azure_openai_endpoint" \
+                azure_servicebus_connection_string="$azure_servicebus_connection_string" \
 
             az containerapp update \
               --name "$CLOUD_RUN_SERVICE" \
@@ -329,6 +331,7 @@ jobs:
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
                 AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
                 AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
+                AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure_servicebus_connection_string \
 
           else
             echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
@@ -355,6 +358,7 @@ jobs:
                 azure-openai-api-key="$azure_openai_api_key" \
                 azure-openai-api-version="$azure_openai_api_version" \
                 azure-openai-endpoint="$azure_openai_endpoint" \
+                azure_servicebus_connection_string="$azure_servicebus_connection_string" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.whitepond-a64d1ba1.centralus.azurecontainerapps.io \
@@ -366,7 +370,8 @@ jobs:
                 AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
                 AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
-                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version
+                AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
+                AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure_servicebus_connection_string
           fi
 
           echo ""
@@ -398,6 +403,7 @@ jobs:
                 azure-openai-api-key="$azure_openai_api_key" \
                 azure-openai-api-version="$azure_openai_api_version" \
                 azure-openai-endpoint="$azure_openai_endpoint" \
+                azure_servicebus_connection_string="$azure_servicebus_connection_string" \
 
             az containerapp update \
               --name "$CLOUD_WORKER_SERVICE" \
@@ -418,6 +424,7 @@ jobs:
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
                 AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
                 AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
+                AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure_servicebus_connection_string \
               --command python \
               --args "-m orbiee.workers.session_worker"
           else
@@ -444,6 +451,7 @@ jobs:
                 azure-openai-api-key="$azure_openai_api_key" \
                 azure-openai-api-version="$azure_openai_api_version" \
                 azure-openai-endpoint="$azure_openai_endpoint" \
+                azure_servicebus_connection_string="$azure_servicebus_connection_string" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 DB_CONFIG=secretref:db-config \
@@ -455,6 +463,7 @@ jobs:
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
                 AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
                 AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
+                AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure_servicebus_connection_string \
               --command python \
               --args "-m orbiee.workers.session_worker"
           fi
