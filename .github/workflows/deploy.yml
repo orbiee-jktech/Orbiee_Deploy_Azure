@@ -293,7 +293,8 @@ jobs:
           azure_openai_endpoint="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-openai-endpoint,identityref:system"
           azure_servicebus_connection_string="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/azure-servicebus-connection-string,identityref:system"
           orbiee_entra_issuer="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-entra-issuer,identityref:system"
-          orbiee_entra_client_id="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-entra-client_id,identityref:system"
+          orbiee_entra_client_id="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-entra-client-id,identityref:system"
+          orbiee_entra_tenant_id="keyvaultref:https://orbiee-kv.vault.azure.net/secrets/orbiee-entra-tenant-id,identityref:system"
 
           # ------------------------------------------------------------
           # Main Cloud Run / API Service
@@ -316,6 +317,7 @@ jobs:
                 azure-servicebus-connection-string="$azure_servicebus_connection_string" \
                 orbiee-entra-issuer="$orbiee_entra_issuer" \
                 orbiee-entra-client-id="$orbiee_entra_client_id" \
+                orbiee-entra-tenant-id="$orbiee_entra_tenant_id" \
 
             az containerapp update \
               --name "$CLOUD_RUN_SERVICE" \
@@ -338,6 +340,7 @@ jobs:
                 AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure-servicebus-connection-string \
                 ORBIEE_ENTRA_ISSUER=secretref:orbiee-entra-issuer \
                 ORBIEE_ENTRA_CLIENT_ID=secretref:orbiee-entra-client-id \
+                ORBIEE_ENTRA_TENANT_ID=secretref:orbiee-entra-tenant-id \
 
           else
             echo "Creating new Container App ($CLOUD_RUN_SERVICE)..."
@@ -367,6 +370,7 @@ jobs:
                 azure-servicebus-connection-string="$azure_servicebus_connection_string" \
                 orbiee-entra-issuer="$orbiee_entra_issuer" \
                 orbiee-entra-client-id="$orbiee_entra_client_id" \
+                orbiee-entra-tenant-id="$orbiee_entra_tenant_id" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 ORBIEE_EMOTION_SERVICE_URL=https://${EMOTION_DETECTION_SERVICE}.whitepond-a64d1ba1.centralus.azurecontainerapps.io \
@@ -381,7 +385,8 @@ jobs:
                 AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version \
                 AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure-servicebus-connection-string \
                 ORBIEE_ENTRA_ISSUER=secretref:orbiee-entra-issuer \
-                ORBIEE_ENTRA_CLIENT_ID=secretref:orbiee-entra-client-id 
+                ORBIEE_ENTRA_CLIENT_ID=secretref:orbiee-entra-client-id \
+                ORBIEE_ENTRA_TENANT_ID=secretref:orbiee-entra-tenant-id
           fi
 
           echo ""
@@ -416,6 +421,7 @@ jobs:
                 azure-servicebus-connection-string="$azure_servicebus_connection_string" \
                 orbiee-entra-issuer="$orbiee_entra_issuer" \
                 orbiee-entra-client-id="$orbiee_entra_client_id" \
+                orbiee-entra-tenant-id="$orbiee_entra_tenant_id" \
 
             az containerapp update \
               --name "$CLOUD_WORKER_SERVICE" \
@@ -439,6 +445,7 @@ jobs:
                 AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure-servicebus-connection-string \
                 ORBIEE_ENTRA_ISSUER=secretref:orbiee-entra-issuer \
                 ORBIEE_ENTRA_CLIENT_ID=secretref:orbiee-entra-client-id \
+                ORBIEE_ENTRA_TENANT_ID=secretref:orbiee-entra-tenant-id \
               --command python \
               --args "-m orbiee.workers.session_worker"
           else
@@ -468,6 +475,7 @@ jobs:
                 azure-servicebus-connection-string="$azure_servicebus_connection_string" \
                 orbiee-entra-issuer="$orbiee_entra_issuer" \
                 orbiee-entra-client-id="$orbiee_entra_client_id" \
+                orbiee-entra-tenant-id="$orbiee_entra_tenant_id" \
               --env-vars \
                 ORBIEE_DEBUG=false \
                 DB_CONFIG=secretref:db-config \
@@ -482,6 +490,7 @@ jobs:
                 AZURE_SERVICEBUS_CONNECTION_STRING=secretref:azure-servicebus-connection-string \
                 ORBIEE_ENTRA_ISSUER=secretref:orbiee-entra-issuer \
                 ORBIEE_ENTRA_CLIENT_ID=secretref:orbiee-entra-client-id \
+                ORBIEE_ENTRA_TENANT_ID=secretref:orbiee-entra-tenant-id \
               --command python \
               --args "-m orbiee.workers.session_worker"
           fi
