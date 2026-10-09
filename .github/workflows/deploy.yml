@@ -332,6 +332,7 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_OPENAI_EMBEDDING_DEPLOYMENT=orbiee-product-embedding \
                 AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
                 AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
@@ -378,6 +379,7 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_OPENAI_EMBEDDING_DEPLOYMENT=orbiee-product-embedding \
                 AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
                 AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
@@ -437,6 +439,7 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_OPENAI_EMBEDDING_DEPLOYMENT=orbiee-product-embedding \
                 AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
                 AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
@@ -482,6 +485,7 @@ jobs:
                 API_KEYS_JSON=secretref:api-keys-json \
                 REDIS_URL=secretref:redis-url \
                 ORBIEE_SEARCH_BACKEND=internal \
+                AZURE_OPENAI_EMBEDDING_DEPLOYMENT=orbiee-product-embedding \
                 AZURE_SPEECH_ENDPOINT=secretref:azure-speech-endpoint \
                 AZURE_SPEECH_API_KEY=secretref:azure-speech-api-key \
                 AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
